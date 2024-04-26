@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenttest"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/collector/service/servicetest"
@@ -39,12 +40,12 @@ func TestLoadConfig(t *testing.T) {
 
 	assert.Equal(t, len(cfg.Receivers), 2)
 
-	r0 := cfg.Receivers[config.NewComponentID(typeStr)]
+	r0 := cfg.Receivers[component.NewID(typeStr)]
 	assert.Equal(t, factory.CreateDefaultConfig(), r0)
 
-	r1 := cfg.Receivers[config.NewComponentIDWithName(typeStr, "receiver_settings")]
+	r1 := cfg.Receivers[component.NewIDWithName(typeStr, "receiver_settings")]
 	assert.Equal(t, &Config{
-		ReceiverSettings: config.NewReceiverSettings(config.NewComponentIDWithName(typeStr, "receiver_settings")),
+		ReceiverSettings: config.NewReceiverSettings(component.NewIDWithName(typeStr, "receiver_settings")),
 		Address:          "localhost:8889",
 		MaxPacketSize:    defaultMaxPacketSize,
 		SocketBufferSize: defaultSocketBufferSize,

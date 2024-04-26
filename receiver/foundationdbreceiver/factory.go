@@ -37,13 +37,13 @@ func NewFactory() component.ReceiverFactory {
 	return component.NewReceiverFactory(
 		typeStr,
 		createDefaultConfig,
-        component.WithTracesReceiver(createTracesReceiver),
+		component.WithTracesReceiver(createTracesReceiver, component.StabilityLevelBeta),
 	)
 }
 
 func createTracesReceiver(ctx context.Context,
 	settings component.ReceiverCreateSettings,
-	cfg config.Receiver,
+	cfg component.ReceiverConfig,
 	consumer consumer.Traces) (component.TracesReceiver, error) {
 	c := cfg.(*Config)
 	if consumer == nil {
@@ -59,11 +59,14 @@ func NewFoundationDBReceiver(settings component.ReceiverCreateSettings, config *
 	if err != nil {
 		return nil, err
 	}
-	obsrecv := obsreport.NewReceiver(obsreport.ReceiverSettings{
+	obsrecv, err := obsreport.NewReceiver(obsreport.ReceiverSettings{
 		ReceiverID:             config.ID(),
 		Transport:              "udp",
 		ReceiverCreateSettings: settings,
 	})
+	if err != nil {
+		return nil, err
+	}
 	handler := createHandler(config, consumer, obsrecv)
 	if handler == nil {
 		return nil, fmt.Errorf("unable to create handler, tracing format %s unsupported", config.Format)
@@ -74,17 +77,17 @@ func NewFoundationDBReceiver(settings component.ReceiverCreateSettings, config *
 func createHandler(c *Config, consumer consumer.Traces, obsrecv *obsreport.Receiver) fdbTraceHandler {
 	switch {
 	case c.Format == OPENTELEMETRY:
-      return &openTelemetryHandler{consumer: consumer, obsrecv: obsrecv}
+		return &openTelemetryHandler{consumer: consumer, obsrecv: obsrecv}
 	case c.Format == OPENTRACING:
-      return &openTracingHandler{consumer: consumer, obsrecv: obsrecv}
+		return &openTracingHandler{consumer: consumer, obsrecv: obsrecv}
 	default:
 		return nil
 	}
 }
 
-func createDefaultConfig() config.Receiver {
+func createDefaultConfig() component.ReceiverConfig {
 	return &Config{
-		ReceiverSettings: config.NewReceiverSettings(config.NewComponentID(typeStr)),
+		ReceiverSettings: config.NewReceiverSettings(component.NewID(typeStr)),
 		Address:          defaultAddress,
 		MaxPacketSize:    defaultMaxPacketSize,
 		SocketBufferSize: defaultSocketBufferSize,
